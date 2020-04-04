@@ -67,17 +67,16 @@ k_new=[]
 for i in range(0, len(tot_casi)):
     k_new.append(new_casi[i]/tot_casi[i])
 
-popt_1, pcov_1 = curve_fit(linear, tot_casi[5:], k_new[5:])
+popt_1, pcov_1 = curve_fit(linear, tot_casi[-14:], k_new[-14:])
 pred1 = -popt_1[1]/popt_1[0]
 try:
-    popt_2, pcov_2 = curve_fit(linear, tot_casi[2:-2], k_tot[1:])
+    popt_2, pcov_2 = curve_fit(linear, tot_casi[n_giorni - int(inf_time/2)-14: n_giorni - int(inf_time/2)], k_tot[-14:])
     pred2 = -popt_2[1]/popt_2[0]
 except:
-    popt_2, pcov_2 = curve_fit(linear, tot_casi[3:-2], k_tot[1:])
-    pred2 = -popt_2[1]/popt_2[0]
-    
-#-------------------------opzioni estetiche plot--------------------------------
+    print("controlla il range di fit")
 
+#-------------------------opzioni estetiche plot--------------------------------
+    
 fig = plt.figure(figsize=(10, 9))
 
 ax1 = fig.add_subplot(211)
@@ -88,7 +87,7 @@ ax1.yaxis.grid(True, which='minor', linestyle=':')
 ax1.set_title('Covid-19 Time Evolution - Italy')
 ax1.set_ylabel('Total infected')
 ax1.tick_params(axis='y')
-#ax1.set_yscale('log')
+ax1.set_yscale('log')
 plt.xticks(rotation=45)
 maj_loc = mpl.ticker.MultipleLocator(base=3.0)
 min_loc = mpl.ticker.MultipleLocator(base=1.0)
@@ -121,10 +120,10 @@ ax2.plot(tot_casi[int(inf_time/2)+1: n_giorni - int(inf_time/2)], k_tot[1:],
          's--', color=c2, label='based on total infected')
 ax2.plot(tot_casi, k_new,
          's--', color=c1, label='based on new daily infected')
-ax2.plot(tot_casi[5:], linear(np.asarray(tot_casi[5:]), popt_1[0], popt_1[1]),
+ax2.plot(tot_casi[-14:], linear(np.asarray(tot_casi[-14:]), popt_1[0], popt_1[1]),
          '--', color='tab:grey')
-ax2.plot(tot_casi[3:-2], linear(
-    np.asarray(tot_casi[3:-2]), popt_2[0], popt_2[1]),'--', color='tab:grey')
+ax2.plot(tot_casi[-2-14:-2], linear(
+    np.asarray(tot_casi[-2-14:-2]), popt_2[0], popt_2[1]),'--', color='tab:grey')
 ax2.plot(pred1, 0, 'ko')
 ax2.plot(pred2, 0, 'ko')
 ax2.annotate('predicted\n %i\n infected' %pred1, xy=(pred1, 0),

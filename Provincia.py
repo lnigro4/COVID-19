@@ -66,9 +66,12 @@ for i in range(int(inf_time/2), n_giorni - int(inf_time/2)):
     x.clear()
     y.clear()
 
-popt_2, pcov_2 = curve_fit(linear, tot[3:-3], k_tot[1:])
-pred2 = -popt_2[1]/popt_2[0]
-        
+try:
+    popt_2, pcov_2 = curve_fit(linear, tot[n_giorni - int(inf_time/2) -14: n_giorni - int(inf_time/2)], k_tot[-14:])
+    pred2 = -popt_2[1]/popt_2[0]
+except:
+    print("controlla il range di fit")
+    
 #-------------------------opzioni estetiche plot--------------------------------
 
 
@@ -98,7 +101,7 @@ ax.set_title('Growth k factor')
 ax.set_ylabel('k factor', color=c2)
 ax.set_xlabel('Total infected')
 ax.tick_params(axis='y', labelcolor=c2)
-ax.set_xscale('log')
+#ax.set_xscale('log')
 plt.xticks(rotation=45)
 ax.set_ylim(0,1)
 

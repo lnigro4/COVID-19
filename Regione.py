@@ -76,15 +76,13 @@ for i in range(0, len(tot)):
     else:
         k_new.append(0)
 
-popt_1, pcov_1 = curve_fit(linear, tot[5:], k_new[5:])
+popt_1, pcov_1 = curve_fit(linear, tot[-14:], k_new[-14:])
 pred1 = -popt_1[1]/popt_1[0]
 try:
-    popt_2, pcov_2 = curve_fit(linear, tot[2:-3], k_tot[1:])
+    popt_2, pcov_2 = curve_fit(linear, tot[n_giorni - int(inf_time/2) -14: n_giorni - int(inf_time/2)], k_tot[-14:])
     pred2 = -popt_2[1]/popt_2[0]
 except:
-    popt_2, pcov_2 = curve_fit(linear, tot[3:-3], k_tot[1:])
-    pred2 = -popt_2[1]/popt_2[0]
-
+    print("controlla il range di fit")
         
 #-------------------------opzioni estetiche plot--------------------------------
 
@@ -98,7 +96,7 @@ ax1.yaxis.grid(True, which='minor', linestyle=':')
 ax1.set_title('Covid-19 Time Evolution - '+regione)
 ax1.set_ylabel('Total infected')
 ax1.tick_params(axis='y')
-#ax1.set_yscale('log')
+ax1.set_yscale('log')
 plt.xticks(rotation=45)
 maj_loc = mpl.ticker.MultipleLocator(base=3.0)
 min_loc = mpl.ticker.MultipleLocator(base=1.0)
@@ -136,10 +134,10 @@ ax.plot(tot, k_new,
 ax.plot(tot[int(inf_time/2)+1: n_giorni - int(inf_time/2)], k_tot[1:],
          's--', color=c2, label='based on total infected')
 
-ax.plot(tot[5:], linear(np.asarray(tot[5:]), popt_1[0], popt_1[1]),
+ax.plot(tot[-14:], linear(np.asarray(tot[-14:]), popt_1[0], popt_1[1]),
          '--', color='tab:grey')
-ax.plot(tot[3:-2], linear(
-    np.asarray(tot[3:-2]), popt_2[0], popt_2[1]),'--', color='tab:grey')
+ax.plot(tot[n_giorni - int(inf_time/2) -14: n_giorni - int(inf_time/2)], linear(
+    np.asarray(tot[n_giorni - int(inf_time/2) -14: n_giorni - int(inf_time/2)]), popt_2[0], popt_2[1]),'--', color='tab:grey')
 ax.plot(pred1, 0, 'ko')
 ax.plot(pred2, 0, 'ko')
 ax.annotate('predicted\n %i\n infected' %pred1, xy=(pred1, 0),
