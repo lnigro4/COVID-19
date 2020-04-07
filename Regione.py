@@ -118,7 +118,7 @@ for i in range(int(inf_time/2), n_giorni - int(inf_time/2)):
         y.append(tot[j])
     popt, pcov = curve_fit(gaussian, x, y)
     k_tot.append(popt[1])
-    R0_tot.append(1+popt[1]*(exp_time+inf_time)+(popt[1]**2)*(exp_time)*(inf_time))
+    R0_tot.append(popt[1]*(exp_time+inf_time)+(popt[1]**2)*(exp_time)*(inf_time))
     x.clear()
     y.clear()
 
@@ -127,7 +127,7 @@ R0_new=[]
 for i in range(0, len(tot)):
     if tot[i] != 0:
         k_new.append(new[i]/tot[i])
-        R0_new.append(1+(new[i]/tot[i])*(exp_time+inf_time)+((new[i]/tot[i])**2)*(exp_time)*(inf_time))
+        R0_new.append((new[i]/tot[i])*(exp_time+inf_time)+((new[i]/tot[i])**2)*(exp_time)*(inf_time))
     else:
         k_new.append(0)
         R0_new.append(0)
