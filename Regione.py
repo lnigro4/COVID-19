@@ -92,7 +92,8 @@ tot = []
 giorni = []
 new = []
 x_giorni = []
-R = []
+deceduti = []
+guariti = []
 I = []
 E = []
 counter=0
@@ -104,7 +105,9 @@ for d in range(0, len(dati_regioni)-1):
         new.append(dati_regioni[d]['nuovi_positivi'])
         giorni.append(dati_regioni[d]['data'][:10])
         x_giorni.append(counter)
-        R.append(dati_regioni[d]['deceduti'])
+        deceduti.append(dati_regioni[d]['deceduti'])
+        guariti.append(dati_regioni[d]['dimessi_guariti'])
+        R = np.asarray(deceduti)
         I.append(dati_regioni[d]['totale_positivi'])
         E.append(dati_regioni[d]['isolamento_domiciliare'])
         
@@ -118,7 +121,7 @@ for i in range(int(inf_time/2), n_giorni - int(inf_time/2)):
         y.append(tot[j])
     popt, pcov = curve_fit(gaussian, x, y)
     k_tot.append(popt[1])
-    R0_tot.append(popt[1]*(exp_time+inf_time)+(popt[1]**2)*(exp_time)*(inf_time))
+    R0_tot.append(1+popt[1]*(exp_time+inf_time)+(popt[1]**2)*(exp_time)*(inf_time))
     x.clear()
     y.clear()
 
@@ -127,7 +130,7 @@ R0_new=[]
 for i in range(0, len(tot)):
     if tot[i] != 0:
         k_new.append(new[i]/tot[i])
-        R0_new.append((new[i]/tot[i])*(exp_time+inf_time)+((new[i]/tot[i])**2)*(exp_time)*(inf_time))
+        R0_new.append(1+(new[i]/tot[i])*(exp_time+inf_time)+((new[i]/tot[i])**2)*(exp_time)*(inf_time))
     else:
         k_new.append(0)
         R0_new.append(0)
@@ -187,6 +190,7 @@ plt.xticks(rotation=45)
 ax3.set_xlim(10000, pred1)
 ax3.set_ylim(0,8)
 
+'''seir vs sir model
 ax4 = fig.add_subplot(224)
 ax4.grid()
 ax4.xaxis.grid(True, which='minor', linestyle=':')
@@ -199,6 +203,20 @@ ax4.tick_params(axis='y')
 plt.xticks(rotation=45)
 ax4.set_xlim(10000, pred1)
 ax4.set_ylim(0,30)
+'''
+
+ax5 = fig.add_subplot(224)
+ax5.grid()
+ax5.xaxis.grid(True, which='minor', linestyle=':')
+ax5.yaxis.grid(True, which='minor', linestyle=':')
+ax5.set_title('Deaths vs Healed')
+ax5.set_ylabel('number of people')
+ax5.tick_params(axis='y')
+#ax5.set_yscale('log')
+plt.xticks(rotation=45)
+ax5.xaxis.set_major_locator(maj_loc)
+ax5.xaxis.set_minor_locator(min_loc)
+
 
 plt.subplots_adjust(left=.08, right=.95, bottom=0.08, top=0.95, wspace=.15, hspace=0.35)
 
@@ -236,13 +254,19 @@ ax3.plot(tot[int(inf_time/2)+12: n_giorni - int(inf_time/2)], R0_tot[12:],
          's--', color=c2, label='based on total infected')
 ax3.plot(tot[12:], R0_new[12:],
          's--', color=c1, label='based on new daily infected')
-ax3.legend(loc='best')
+ax3.errorbar(tot[-1], R0_new[-1], yerr=0.48, color='k', fmt = '.')
 ax3.legend(loc='best')
 
+'''
 ax4.plot(tot[7:-1], seir_model(E, I, R, N),
          's--', label=r'$R_0=\beta\epsilon/(\gamma +\mu)(\epsilon +\mu)$')
 ax4.plot(tot[7:-1], sir_model(I, R, N), 's--', label=r'$R_0=\beta/\gamma$')
 ax4.legend(loc='best')
+'''
+
+ax5.plot(giorni, deceduti, 'ro--', label=r'Protezione Civile data - Deceduti')
+ax5.plot(giorni, guariti, 'ko--', label=r'Protezione Civile data - Guariti dimessi')
+ax5.legend()
 
 fig.savefig('/Users/nigresson/Desktop/COVID19/k factor - '+regione)
 
