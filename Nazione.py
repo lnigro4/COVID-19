@@ -65,6 +65,24 @@ def seir_model(E, I, R, N):
     R0=beta[7:-1]*eps[7:-1]/(gammu[7:-1]*(eps[7:-1]+mu[7:-1]))
     return R0
 
+def k_factor(new, tot):
+    k=[]
+    for i in range(len(tot)):
+        if tot[i]!= 0:
+            k.append(new[i]/tot[i])
+        else:
+            k.append(None)
+    return k
+
+def R0(k, t_e, t_i):
+    R0=[]
+    for i in range(len(k)):
+        if k[i] == None:
+            R0.append(None)
+        else:
+            R0.append(1+k[i]*(t_e + t_i)+(k[i]**2)*t_e*t_i - 0.2209206990276071)
+    return R0
+
 def gaussian(x, a, k):
     return a*np.exp(k*x)
 
@@ -72,8 +90,11 @@ def linear(x, m, q):
     return m*x+q
 
 inf_time = 5
-exp_time = 17
+exp_time = 12
 N=60483973
+
+asse_x = 'Data'
+#asse_x = 'Infetti'
 
 #-------------------------lettura da file---------------------------------------
 
@@ -97,44 +118,44 @@ deceduti = []
 guariti = []
 I = []
 E = []
+tamponi = []
+intensiva = []
+new_intensiva = []
+new_deceduti = []
+new_guariti = []
 for d in range(0, n_giorni-1):
     tot_casi.append(dati_nazione[d]['totale_casi'])
     new_casi.append(dati_nazione[d]['nuovi_positivi'])
     deceduti.append(dati_nazione[d]['deceduti'])
     guariti.append(dati_nazione[d]['dimessi_guariti'])
+    intensiva.append(dati_nazione[d]['terapia_intensiva'])
     R = np.asarray(deceduti)
     I.append(dati_nazione[d]['totale_positivi'])
     E.append(dati_nazione[d]['isolamento_domiciliare'])
     giorni.append(dati_nazione[d]['data'][:10])
+    tamponi.append(dati_nazione[d]['tamponi'])
     x_giorni.append(d)
+    
+new_intensiva.append(intensiva[0])
+new_deceduti.append(deceduti[0])
+new_guariti.append(guariti[0])
+for i in range(1, n_giorni-1):
+    new_intensiva.append(intensiva[i]-intensiva[i-1])
+    new_deceduti.append(deceduti[i]-deceduti[i-1])
+    new_guariti.append(guariti[i]-deceduti[i-1])
 
-x=[]
-y=[]
-k_tot=[]
-R0_tot = []
-for i in range(int(inf_time/2), n_giorni - int(inf_time/2)):
-    for j in range(i-int(inf_time/2), i+int(inf_time/2)):
-        x.append(x_giorni[j])
-        y.append(tot_casi[j])
-    popt, pcov = curve_fit(gaussian, x, y)
-    k_tot.append(popt[1])
-    R0_tot.append(1+popt[1]*(exp_time+inf_time)+(popt[1]**2)*(exp_time)*(inf_time))
-    x.clear()
-    y.clear()
+k_inf = k_factor(new_casi, tot_casi)
+k_int = k_factor(new_intensiva, intensiva)
+k_dec = k_factor(new_deceduti, deceduti)
+k_gua = k_factor(new_guariti, guariti)
+R0_inf = R0(k_inf, exp_time, inf_time)
+R0_int = R0(k_int, exp_time, inf_time)
+R0_dec = R0(k_dec, exp_time, inf_time)
+R0_gua = R0(k_gua, exp_time, inf_time)
 
-k_new=[]
-R0_new=[]
-for i in range(0, len(tot_casi)):
-    k_new.append(new_casi[i]/tot_casi[i])
-    R0_new.append(1+(new_casi[i]/tot_casi[i])*(exp_time+inf_time)+((new_casi[i]/tot_casi[i])**2)*(exp_time)*(inf_time))
 
-popt_1, pcov_1 = curve_fit(linear, tot_casi[-14:], k_new[-14:])
+popt_1, pcov_1 = curve_fit(linear, tot_casi[-14:], k_inf[-14:])
 pred1 = -popt_1[1]/popt_1[0]
-try:
-    popt_2, pcov_2 = curve_fit(linear, tot_casi[n_giorni - int(inf_time/2)-14: n_giorni - int(inf_time/2)], k_tot[-14:])
-    pred2 = -popt_2[1]/popt_2[0]
-except:
-    print("controlla il range di fit")
 
 #-------------------------opzioni estetiche plot--------------------------------
     
@@ -146,11 +167,11 @@ ax1.grid()
 ax1.xaxis.grid(True, which='minor', linestyle=':')
 ax1.yaxis.grid(True, which='minor', linestyle=':')
 ax1.set_title('Covid-19 Time Evolution - Italy')
-ax1.set_ylabel('Total infected')
+ax1.set_ylabel(r'$n^°$ of people')
 ax1.tick_params(axis='y')
 ax1.set_yscale('log')
 plt.xticks(rotation=45)
-maj_loc = mpl.ticker.MultipleLocator(base=3.0)
+maj_loc = mpl.ticker.MultipleLocator(base=5.0)
 min_loc = mpl.ticker.MultipleLocator(base=1.0)
 ax1.xaxis.set_major_locator(maj_loc)
 ax1.xaxis.set_minor_locator(min_loc)
@@ -160,15 +181,16 @@ ax2.grid()
 c2 = 'tab:red'
 ax2.xaxis.grid(True, which='minor', linestyle=':')
 ax2.yaxis.grid(True, which='minor', linestyle=':')
-ax2.set_title('Growth k factor')
+ax2.set_title('Growth rate')
 ax2.set_ylabel('k factor')
-ax2.set_xlabel('Total infected')
-ax2.tick_params(axis='y')
-#ax2.set_xscale('log')
 plt.xticks(rotation=45)
-ax2.set_ylim(0,1)
-ax2.set_xlim(10000, pred1)
-ax2.set_ylim(0,.2)
+ax2.xaxis.set_major_locator(maj_loc)
+ax2.xaxis.set_minor_locator(min_loc)
+ax6 = ax2.twinx()
+ax6.tick_params(axis='y', labelcolor='tab:green')
+ax6.xaxis.set_major_locator(maj_loc)
+ax6.xaxis.set_minor_locator(min_loc)
+
 
 ax3 = fig.add_subplot(223)
 ax3.grid()
@@ -176,12 +198,17 @@ ax3.xaxis.grid(True, which='minor', linestyle=':')
 ax3.yaxis.grid(True, which='minor', linestyle=':')
 ax3.set_title('SEIR model (from k factor)')
 ax3.set_ylabel('$R_0$ index')
-ax3.set_xlabel('Total infected')
-ax3.tick_params(axis='y')
-#ax3.set_xscale('log')
 plt.xticks(rotation=45)
-ax3.set_xlim(10000, pred1)
-ax3.set_ylim(0,9)
+ax3.xaxis.set_major_locator(maj_loc)
+ax3.xaxis.set_minor_locator(min_loc)
+ax3.yaxis.set_major_locator(maj_loc)
+ax3.yaxis.set_minor_locator(min_loc)
+ax3.set_ylim(0,deceduti[0]+0.8)
+ax3.tick_params(axis='y')
+ax7 = ax3.twinx()
+ax7.tick_params(axis='y', labelcolor='tab:green')
+ax7.xaxis.set_major_locator(maj_loc)
+ax7.xaxis.set_minor_locator(min_loc)
 
 '''seir vs sir models
 ax4 = fig.add_subplot(224)
@@ -203,9 +230,9 @@ ax5.grid()
 ax5.xaxis.grid(True, which='minor', linestyle=':')
 ax5.yaxis.grid(True, which='minor', linestyle=':')
 ax5.set_title('Deaths vs Healed')
-ax5.set_ylabel('number of people')
+ax5.set_ylabel(r'$n^°$ of people')
 ax5.tick_params(axis='y')
-#ax5.set_yscale('log')
+ax5.set_yscale('log')
 plt.xticks(rotation=45)
 ax5.xaxis.set_major_locator(maj_loc)
 ax5.xaxis.set_minor_locator(min_loc)
@@ -215,33 +242,35 @@ plt.subplots_adjust(left=0.08, right=0.92, bottom=0.08, top=0.95, hspace=0.35)
 
 #-------------------------plot dei dati-----------------------------------------
 
-ax1.plot(giorni, tot_casi, 'ko--', label=r'Protezione Civile data - Totale infetti')
+ax1.plot(giorni, tot_casi, 'k*--', 
+         label=r'Protezione Civile data - Totale infetti')
+ax1.plot(giorni, new_casi, 'p--', color='tab:orange',
+         label=r'Protezione Civile data - Nuovi infetti')
+ax1.plot(giorni, intensiva, '.--', color='tab:red',
+         label=r'Protezione Civile data - Terapia intensiva')
+ax1.plot(giorni, tamponi, 'v--', color='tab:grey',
+         label=r'Protezione Civile data - Tamponi')
 ax1.legend()
 
-ax2.plot(tot_casi[int(inf_time/2)+1: n_giorni - int(inf_time/2)], k_tot[1:],
-         's--', color=c2, label='based on total infected')
-ax2.plot(tot_casi, k_new,
-         's--', color=c1, label='based on new daily infected')
-ax2.plot(tot_casi[-14:], linear(np.asarray(tot_casi[-14:]), popt_1[0], popt_1[1]),
-         '--', color='tab:grey')
-ax2.plot(tot_casi[-2-14:-2], linear(
-    np.asarray(tot_casi[-2-14:-2]), popt_2[0], popt_2[1]),'--', color='tab:grey')
-ax2.plot(pred1, 0, 'ko')
-ax2.plot(pred2, 0, 'ko')
-ax2.annotate('predicted\n %i\n infected' %pred1, xy=(pred1, 0),
-             xytext=(pred1 -20000, 0.05), color='tab:blue',
-             arrowprops=dict(arrowstyle='->'))
-ax2.annotate('predicted\n %i\n infected' %pred2, xy=(pred2, 0),
-             xytext=(pred2-50000, 0.0075), color='tab:red',
-             arrowprops=dict(arrowstyle='->'))
-ax2.legend(loc='best')
+ax2.plot(giorni[20:], k_inf[20:], 's--', label='Infections')
+#ax2.plot(giorni[20:], k_int[20:], 's--', label='Intensive')
+ax2.plot(giorni[20:], k_dec[20:], 's--', label='Deceased')
+ax6.plot(giorni[20:], k_gua[20:], 's--', color='tab:green', label='Healed')
+ax2.plot(giorni[-14:], linear(np.asarray(tot_casi[-14:]),
+                                    popt_1[0], popt_1[1]),
+             '--', color='tab:grey')
+ax2.legend(loc='upper center')
+ax6.legend(loc='best')
 
-ax3.plot(tot_casi[int(inf_time/2)+12: n_giorni - int(inf_time/2)], R0_tot[12:],
-         's--', color=c2, label='based on total infected')
-ax3.plot(tot_casi[12:], R0_new[12:],
-         's--', color=c1, label='based on new daily infected')
-ax3.errorbar(tot_casi[-1], R0_new[-1], yerr=0.48, color='k', fmt = '.')
-ax3.legend(loc='best')
+
+ax3.plot(giorni[20:], R0_inf[20:],
+             's--', label='Infections')
+#ax3.plot(giorni[20:], R0_int[20:], 's--', label='Intensive')
+ax3.plot(giorni[20:], R0_dec[20:], 's--', label='Deceased')
+ax7.plot(giorni[20:], R0_gua[20:], 's--', color='tab:green', label='Healed')
+#ax3.errorbar(giorni[-1], R0_new[-1], yerr=0.48,  color='k', fmt = '.')    
+ax3.legend(loc='upper center')
+ax7.legend(loc='best')
 
 '''seir vs sir models
 ax4.plot(tot_casi[7:-1], seir_model(E, I, R, N),
@@ -249,11 +278,13 @@ ax4.plot(tot_casi[7:-1], seir_model(E, I, R, N),
 ax4.plot(tot_casi[7:-1], sir_model(I, R, N), 's--', label=r'$R_0=\beta/\gamma$')
 ax4.legend(loc='best')
 '''
-ax5.plot(giorni, deceduti, 'ro--', label=r'Protezione Civile data - Deceduti')
-ax5.plot(giorni, guariti, 'ko--', label=r'Protezione Civile data - Guariti dimessi')
-ax5.legend()
 
-fig.savefig('/Users/nigresson/Desktop/COVID19/growth k-factor comparison')
+ax5.plot(giorni, guariti, 'go--',
+         label=r'Protezione Civile data - Guariti dimessi')
+ax5.plot(giorni, deceduti, 'kd--', label=r'Protezione Civile data - Deceduti')
+ax5.legend(loc='best')
+
+fig.savefig('/Users/nigresson/Desktop/COVID19/k-factor Italy')
 
 
 
